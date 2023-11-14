@@ -35,7 +35,7 @@ class AppTest {
     @Test
     void send_non_compliant() {
         final String minifig = String.format(template,
-                UUID.randomUUID(), "Unknown Size", "Spider-Man");
+                UUID.randomUUID(), "Unknown", "Spider-Man");
 
         kafkaTemplate.send(topic, minifig);
     }

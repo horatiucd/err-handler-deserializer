@@ -1,6 +1,7 @@
 package com.hcd.errhandlerdeserializer.config;
 
 import com.hcd.errhandlerdeserializer.domain.Minifig;
+import com.hcd.errhandlerdeserializer.listener.MinifigFailedDeserializationFunction;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -14,8 +15,9 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
-import org.springframework.kafka.support.serializer.JsonSerializer;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -40,19 +42,17 @@ public class KafkaConfig {
         props.put(JsonDeserializer.TRUSTED_PACKAGES, Minifig.class.getPackageName());
         props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, Minifig.class.getName());
 
-//        JsonDeserializer<MinifigRequest> jsonDeserializer = new JsonDeserializer<>(MinifigRequest.class);
-//        ErrorHandlingDeserializer<MinifigRequest> valueDeserializer = new ErrorHandlingDeserializer<>(jsonDeserializer);
-//        valueDeserializer.setFailedDeserializationFunction(t -> {
-//            return null;
-//        });
-//
-//        DefaultKafkaConsumerFactory<String, MinifigRequest> defaultFactory = new DefaultKafkaConsumerFactory<>(props,
-//                new StringDeserializer(), valueDeserializer);
+        JsonDeserializer<Minifig> jsonDeserializer = new JsonDeserializer<>(Minifig.class);
 
-        DefaultKafkaConsumerFactory<String, Minifig> defaultFactory = new DefaultKafkaConsumerFactory<>(props);
+        ErrorHandlingDeserializer<Minifig> valueDeserializer = new ErrorHandlingDeserializer<>(jsonDeserializer);
+        valueDeserializer.setFailedDeserializationFunction(new MinifigFailedDeserializationFunction());
+
+        DefaultKafkaConsumerFactory<String, Minifig> defaultFactory = new DefaultKafkaConsumerFactory<>(props,
+                new StringDeserializer(), valueDeserializer);
 
         ConcurrentKafkaListenerContainerFactory<String, Minifig> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(defaultFactory);
+        factory.setCommonErrorHandler(new DefaultErrorHandler());
         return factory;
     }
 
